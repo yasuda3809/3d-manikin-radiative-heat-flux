@@ -1,0 +1,85 @@
+#---Step.3 法線の角度に加えて極座標の取得
+#---
+#---Step2のAreaあたりの90/270方向を手動で選別し、
+#---3Dmanekin_calculation_from3Dthermalimage.rを使ってMesh_direction.csvを作成
+#---査読対応のメッシュを増やしたモデルの場合には、E&B_sadoku_re.rを使用すること
+#-------------
+import bpy
+import csv
+import math
+import mathutils
+
+# 入力ファイルのパス
+csv_path = "D:/91.Blender/merged_data_tb2.csv"
+direction_csv_path = "D:/91.Blender/Mesh_direction.csv"
+
+# 出力ファイルのパス
+output_csv_path = "D:/91.Blender/Normal_Direction_Result.csv"
+
+# 方向データの読み込み
+direction_data = {}
+with open(direction_csv_path, newline='', encoding='utf-8') as direction_file:
+    reader = csv.DictReader(direction_file)
+    for row in reader:
+        area_number = int(row['Area'])
+        direction_data[area_number] = row['direction']  # 小文字に修正
+
+# 結果を保存するリスト
+output_data = [["Area", "Direction", "Normal_Z", "Result", "Azimuth", "Elevation"]]
+
+# CSVデータの読み込みと法線方向の判別
+with open(csv_path, newline='', encoding='utf-8') as csvfile:
+    reader = csv.DictReader(csvfile)
+    for row in reader:
+        try:
+            # メッシュの頂点座標を取得
+            vertex_A = mathutils.Vector((float(row['xA']), float(row['yA']), float(row['zA'])))
+            vertex_B = mathutils.Vector((float(row['xB']), float(row['yB']), float(row['zB'])))
+            vertex_C = mathutils.Vector((float(row['xC']), float(row['yC']), float(row['zC'])))
+
+            # メッシュの中心座標を取得
+            x_center = float(row['X_center'])
+            y_center = float(row['Y_center'])
+            z_center = float(row['Z_center'])
+            center = mathutils.Vector((x_center, y_center, z_center))
+
+            # 法線ベクトルを計算（平面の外積）
+            edge1 = vertex_B - vertex_A
+            edge2 = vertex_C - vertex_A
+            normal = edge1.cross(edge2).normalized()
+
+            # メッシュ番号を取得
+            area_number = int(row['Area'])
+
+            # Mesh_direction.csvの情報を基に方向を判別
+            if area_number in direction_data:
+                direction = direction_data[area_number]
+
+                if direction == '270':
+                    # 法線を反転
+                    normal = -normal
+
+                # 反転後の法線ベクトルのz成分を確認して方向を判別
+                if normal.z > 0:
+                    result = "UpDirection"
+                elif normal.z < 0:
+                    result = "DownDirection"
+                else:
+                    result = "Level"
+
+                # 方位角（Azimuth）と仰角（Elevation）を計算
+                azimuth = math.degrees(math.atan2(normal.y, normal.x))
+                elevation = math.degrees(math.asin(normal.z))
+
+                # 結果をリストに追加
+                output_data.append([area_number, direction, round(normal.z, 4), result, round(azimuth, 2), round(elevation, 2)])
+
+        except ValueError as e:
+            print(f"Error parsing row: {row}, Error: {e}")
+
+# 結果をCSVファイルに書き込み
+with open(output_csv_path, mode='w', newline='', encoding='utf-8') as output_file:
+    writer = csv.writer(output_file)
+    writer.writerows(output_data)
+
+print(f"法線方向の判別結果と方位角、仰角の計算結果を {output_csv_path} に出力しました。")
