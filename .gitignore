@@ -1,0 +1,19 @@
+# Local input if you swap in your own real-world data (add as needed)
+# /data/real_thermal_tiles/
+
+# Run outputs (regenerable)
+/output/
+
+# Blender pipeline outputs (regenerable; Mesh_direction.csv is a human-judgment
+# result and is NOT excluded). Normal_Direction_Result.csv is written directly
+# into data/manikin_model/, so it is not covered by this ignore list.
+/blender/manikin_model.obj
+/blender/fisheye_renders/
+
+.Rhistory
+.RData
+.Rproj.user/
+
+# Python (bytecode cache created e.g. by syntax checks)
+__pycache__/
+*.pyc
